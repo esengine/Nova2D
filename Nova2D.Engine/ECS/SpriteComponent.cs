@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Nova2D.Engine.Graphics;
 
 namespace Nova2D.Engine.ECS
 {
@@ -16,6 +17,12 @@ namespace Nova2D.Engine.ECS
         /// The size (in pixels) the sprite should be rendered at.
         /// </summary>
         public Vector2 Size { get; set; }
+        
+        /// <summary>
+        /// Optional source rectangle (in pixels) from the texture.
+        /// If null, the entire texture is used.
+        /// </summary>
+        public Rectangle? SourceRect { get; set; } = null;
         
         /// <summary>
         /// Tint color (including alpha). Defaults to opaque white.

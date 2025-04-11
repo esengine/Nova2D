@@ -39,14 +39,29 @@ namespace Nova2D.Engine.ECS
                     var transform = entity.Get<TransformComponent>()!;
                     var sprite = entity.Get<SpriteComponent>()!;
 
-                    _spriteBatch.Draw(
-                        texture,
-                        transform.Position,
-                        sprite.Size * transform.Scale,
-                        sprite.Color,
-                        sprite.Origin,
-                        transform.Rotation
-                    );
+                    if (sprite.SourceRect.HasValue)
+                    {
+                        _spriteBatch.Draw(
+                            sprite.Texture,
+                            transform.Position,
+                            sprite.Size * transform.Scale,
+                            sprite.SourceRect.Value,
+                            sprite.Color,
+                            sprite.Origin,
+                            transform.Rotation
+                        );
+                    }
+                    else
+                    {
+                        _spriteBatch.Draw(
+                            sprite.Texture,
+                            transform.Position,
+                            sprite.Size * transform.Scale,
+                            sprite.Color,
+                            sprite.Origin,
+                            transform.Rotation
+                        );
+                    }
                 }
 
                 _spriteBatch.End(texture);
