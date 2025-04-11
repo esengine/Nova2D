@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nova2D.Engine\Nova2D.Engine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
+    <PackageReference Include="Silk.NET.Windowing" Version="2.22.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Assets\Textures\" />
+    <Folder Include="Shaders\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Assets\Textures\test.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Shaders\sprite.frag">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Shaders\sprite.vert">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
