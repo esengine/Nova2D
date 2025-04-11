@@ -6,13 +6,29 @@ using System.Runtime.CompilerServices;
 namespace Nova2D.Engine.Graphics
 {
     /// <summary>
-    /// Wraps an OpenGL shader program, provides uniform setters.
+    /// Wraps an OpenGL shader program and provides utility functions for uniform management.
     /// </summary>
     public unsafe class Shader : IDisposable
     {
         private readonly GL _gl;
+        
+        /// <summary>
+        /// The OpenGL handle for the linked shader program.
+        /// </summary>
         public uint Handle { get; }
+        
+        
+        /// <summary>
+        /// Optional uniform location cache to avoid repeated lookups.
+        /// </summary>
+        private readonly Dictionary<string, int> _uniformLocationCache = new();
 
+        /// <summary>
+        /// Creates a shader program from vertex and fragment shader source files.
+        /// </summary>
+        /// <param name="gl">OpenGL instance.</param>
+        /// <param name="vertexPath">Path to the vertex shader file.</param>
+        /// <param name="fragmentPath">Path to the fragment shader file.</param>
         public Shader(GL gl, string vertexPath, string fragmentPath)
         {
             _gl = gl;
@@ -39,6 +55,9 @@ namespace Nova2D.Engine.Graphics
             _gl.DeleteShader(fragment);
         }
 
+        /// <summary>
+        /// Compiles a single shader (vertex or fragment) from source.
+        /// </summary>
         private uint CompileShader(ShaderType type, string source)
         {
             uint shader = _gl.CreateShader(type);
@@ -55,47 +74,63 @@ namespace Nova2D.Engine.Graphics
             return shader;
         }
         
+        /// <summary>
+        /// Activates the shader program for rendering.
+        /// </summary>
         public void Use() => _gl.UseProgram(Handle);
 
+        /// <summary>
+        /// Disposes of the shader and deletes it from the GPU.
+        /// </summary>
         public void Dispose() => _gl.DeleteProgram(Handle);
 
-        // Uniform setters (overloads for various types)
+        /// <summary>
+        /// Gets (or caches) a uniform location by name.
+        /// </summary>
+        private int GetUniformLocation(string name)
+        {
+            if (_uniformLocationCache.TryGetValue(name, out int cached))
+                return cached;
+
+            int location = _gl.GetUniformLocation(Handle, name);
+            if (location == -1)
+                Console.WriteLine($"[Shader] Warning: Uniform '{name}' not found.");
+
+            _uniformLocationCache[name] = location;
+            return location;
+        }
+        
+        // Uniform setters for common types
         
         public void SetInt(string name, int value)
         {
-            int location = _gl.GetUniformLocation(Handle, name);
-            _gl.Uniform1(location, value);
+            _gl.Uniform1(GetUniformLocation(name), value);
         }
-        
+
         public void SetFloat(string name, float value)
         {
-            int location = _gl.GetUniformLocation(Handle, name);
-            _gl.Uniform1(location, value);
+            _gl.Uniform1(GetUniformLocation(name), value);
         }
 
         public void SetVector2(string name, Vector2 value)
         {
-            int location = _gl.GetUniformLocation(Handle, name);
-            _gl.Uniform2(location, value.X, value.Y);
+            _gl.Uniform2(GetUniformLocation(name), value.X, value.Y);
         }
 
         public void SetVector3(string name, Vector3 value)
         {
-            int location = _gl.GetUniformLocation(Handle, name);
-            _gl.Uniform3(location, value.X, value.Y, value.Z);
+            _gl.Uniform3(GetUniformLocation(name), value.X, value.Y, value.Z);
         }
 
         public void SetVector4(string name, Vector4 value)
         {
-            int location = _gl.GetUniformLocation(Handle, name);
-            _gl.Uniform4(location, value.X, value.Y, value.Z, value.W);
+            _gl.Uniform4(GetUniformLocation(name), value.X, value.Y, value.Z, value.W);
         }
 
-        public void SetMatrix4(string name, Matrix4x4 value)
+        public void SetMatrix4(string name, Matrix4x4 value, bool transpose = false)
         {
-            int location = _gl.GetUniformLocation(Handle, name);
             float* ptr = (float*)Unsafe.AsPointer(ref value);
-            _gl.UniformMatrix4(location, 1, transpose: false, ptr);
+            _gl.UniformMatrix4(GetUniformLocation(name), 1, transpose, ptr);
         }
     }
 }

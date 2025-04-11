@@ -6,21 +6,23 @@ using System.IO;
 namespace Nova2D.Engine.Graphics
 {
     /// <summary>
-    /// Represents an OpenGL texture, loaded from file via StbImage.
+    /// Represents a 2D texture loaded from file and uploaded to the GPU.
     /// </summary>
     public unsafe class Texture : IDisposable
     {
         private readonly GL _gl;
+        
+        /// <summary>
+        /// The OpenGL handle of this texture.
+        /// </summary>
         public uint Handle { get; }
 
         public int Width { get; }
         public int Height { get; }
 
         /// <summary>
-        /// Loads a texture from disk and uploads it to GPU.
+        /// Loads a texture from disk and uploads it to the GPU.
         /// </summary>
-        /// <param name="gl">The OpenGL context.</param>
-        /// <param name="path">Relative or absolute file path to image.</param>
         public Texture(GL gl, string path)
         {
             _gl = gl;
@@ -28,9 +30,6 @@ namespace Nova2D.Engine.Graphics
             if (!File.Exists(path))
                 throw new FileNotFoundException($"Texture file not found: {path}");
 
-            // Flip image vertically to match OpenGL's bottom-left origin
-            // StbImage.stbi_set_flip_vertically_on_load(1);
-            
             using var stream = File.OpenRead(path);
             var image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
 
@@ -42,14 +41,14 @@ namespace Nova2D.Engine.Graphics
 
             fixed (byte* dataPtr = image.Data)
             {
-                _gl.TexImage2D(TextureTarget.Texture2D, level: 0,
-                    internalformat: (int)InternalFormat.Rgba,
-                    width: (uint)image.Width,
-                    height: (uint)image.Height,
-                    border: 0,
-                    format: PixelFormat.Rgba,
-                    type: PixelType.UnsignedByte,
-                    pixels: dataPtr);
+                _gl.TexImage2D(TextureTarget.Texture2D, 0,
+                    (int)InternalFormat.Rgba,
+                    (uint)image.Width,
+                    (uint)image.Height,
+                    0,
+                    PixelFormat.Rgba,
+                    PixelType.UnsignedByte,
+                    dataPtr);
             }
 
             // Set default filtering and wrapping

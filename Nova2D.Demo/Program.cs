@@ -16,7 +16,9 @@ namespace Nova2D.Demo
         private static SpriteRenderer? _renderer;
         private static Shader? _shader;
         private static Camera2D? _camera;
-
+        
+        private static float _angle = 0f;
+        
         static void Main()
         {
             var options = WindowOptions.Default;
@@ -55,8 +57,18 @@ namespace Nova2D.Demo
         {
             _gl.ClearColor(0.1f, 0.1f, 0.1f, 1f);
             _gl.Clear(ClearBufferMask.ColorBufferBit);
-            
-            _renderer?.Draw(_texture!, new Vector2(100f, 100f), new Vector2(256f, 256f), _camera!.GetMatrix());
+
+            _angle += (float)delta; // 旋转
+
+            _renderer?.Draw(
+                _texture!,
+                new Vector2(0f, 0f),                 // 左上角
+                new Vector2(128f, 128f),            // 大小
+                0f,                                 // 不旋转
+                Vector2.Zero,                       // 原点在左上角
+                new Vector4(1f, 1f, 1f, 1f),        // 白色
+                _camera!.GetMatrix()
+            );
         }
 
         private static void OnClose()

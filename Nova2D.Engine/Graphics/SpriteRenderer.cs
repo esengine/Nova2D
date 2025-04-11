@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace Nova2D.Engine.Graphics
 {
     /// <summary>
-    /// A basic 2D sprite renderer that draws textured quads using a single shader.
+    /// Renders 2D textured quads using a simple shader and MVP transform.
     /// </summary>
     public unsafe class SpriteRenderer
     {
@@ -55,20 +55,33 @@ namespace Nova2D.Engine.Graphics
         /// <summary>
         /// Renders a single textured quad at a given position and size.
         /// </summary>
-        public void Draw(Texture texture, Vector2 position, Vector2 size, Matrix4x4 cameraMatrix)
+        public void Draw(
+            Texture texture,
+            Vector2 position,
+            Vector2 size,
+            float rotation,
+            Vector2 origin,
+            Vector4 color,
+            Matrix4x4 cameraMatrix)
         {
             _shader.Use();
 
-            Matrix4x4 model =
+            // Transform
+            var model =
+                Matrix4x4.CreateTranslation(-origin.X, -origin.Y, 0f) *
                 Matrix4x4.CreateScale(size.X, size.Y, 1f) *
+                Matrix4x4.CreateRotationZ(rotation) *
                 Matrix4x4.CreateTranslation(position.X, position.Y, 0f);
+
+            var mvp = model * cameraMatrix;
             
-            Matrix4x4 mvp = model * cameraMatrix;
-
-            int modelLoc = _gl.GetUniformLocation(_shader.Handle, "uModel");
+            int mvpLoc = _gl.GetUniformLocation(_shader.Handle, "uMVP");
             float* m = (float*)Unsafe.AsPointer(ref mvp);
-            _gl.UniformMatrix4(modelLoc, 1, false, m);
+            _gl.UniformMatrix4(mvpLoc, 1, false, m);
 
+            int colorLoc = _gl.GetUniformLocation(_shader.Handle, "uColor");
+            _gl.Uniform4(colorLoc, color.X, color.Y, color.Z, color.W);
+            
             texture.Bind();
             _gl.BindVertexArray(_vao);
             _gl.DrawArrays(PrimitiveType.Triangles, 0, 6);
