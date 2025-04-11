@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Nova2D.Engine.ECS;
 using Nova2D.Engine.Graphics;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
@@ -11,13 +12,14 @@ namespace Nova2D.Demo
     {
         private static IWindow _window;
         private static GL _gl;
-        private static Texture? _texture;
-        
-        private static SpriteRenderer? _renderer;
+
         private static Shader? _shader;
+        private static Texture? _texture;
+        private static SpriteRenderer? _renderer;
         private static Camera2D? _camera;
-        
-        private static float _angle = 0f;
+
+        private static Scene? _scene;
+        private static Entity? _rotatingEntity;
         
         static void Main()
         {
@@ -28,7 +30,9 @@ namespace Nova2D.Demo
             _window = Window.Create(options);
             _window.Load += OnLoad;
             _window.Render += OnRender;
+            _window.Update += OnUpdate;
             _window.Closing += OnClose;
+
             _window.FramebufferResize += size =>
             {
                 _gl.Viewport(0, 0, (uint)size.X, (uint)size.Y);
@@ -42,15 +46,30 @@ namespace Nova2D.Demo
         {
             _gl = GL.GetApi(_window);
 
-            var texPath = Path.Combine("Assets", "Textures", "test.png");
-            _texture = new Texture(_gl, texPath);
-
-            var vertPath = Path.Combine("Shaders", "sprite.vert");
-            var fragPath = Path.Combine("Shaders", "sprite.frag");
-            _shader = new Shader(_gl, vertPath, fragPath);
+            _texture = new Texture(_gl, Path.Combine("Assets", "Textures", "test.png"));
+            _shader = new Shader(_gl, "Shaders/sprite.vert", "Shaders/sprite.frag");
 
             _renderer = new SpriteRenderer(_gl, _shader);
             _camera = new Camera2D(_window.Size.X, _window.Size.Y);
+            _scene = new Scene();
+
+            _rotatingEntity = new Entity
+            {
+                Sprite = new SpriteComponent(_texture!)
+                {
+                    Size = new Vector2(128, 128),
+                    Color = Vector4.One
+                }
+            };
+            _rotatingEntity.Transform.Position = new Vector2(400, 300);
+
+            _scene.AddEntity(_rotatingEntity);
+        }
+        
+        private static void OnUpdate(double delta)
+        {
+            if (_rotatingEntity != null)
+                _rotatingEntity.Transform.Rotation += (float)delta;
         }
 
         private static void OnRender(double delta)
@@ -58,22 +77,13 @@ namespace Nova2D.Demo
             _gl.ClearColor(0.1f, 0.1f, 0.1f, 1f);
             _gl.Clear(ClearBufferMask.ColorBufferBit);
 
-            _angle += (float)delta; // 旋转
-
-            _renderer?.Draw(
-                _texture!,
-                new Vector2(0f, 0f),                 // 左上角
-                new Vector2(128f, 128f),            // 大小
-                0f,                                 // 不旋转
-                Vector2.Zero,                       // 原点在左上角
-                new Vector4(1f, 1f, 1f, 1f),        // 白色
-                _camera!.GetMatrix()
-            );
+            _scene?.Render(_renderer!, _camera!);
         }
 
         private static void OnClose()
         {
             _texture?.Dispose();
+            _shader?.Dispose();
         }
     }
 }
