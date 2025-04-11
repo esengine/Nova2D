@@ -1,47 +1,73 @@
-﻿using System.Collections.Generic;
-using Nova2D.Engine.Graphics;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Nova2D.Engine.ECS
 {
     /// <summary>
-    /// Represents a collection of entities in a scene and handles their rendering.
+    /// Represents a scene containing entities and systems.
+    /// Responsible for updating all systems and providing entity queries.
     /// </summary>
     public class Scene
     {
         private readonly List<Entity> _entities = new();
+        private readonly List<ISystem> _systems = new();
+        private readonly List<IRenderSystem> _renderSystems = new();
 
         /// <summary>
-        /// Adds a new entity to the scene.
+        /// Adds an entity to the scene.
         /// </summary>
+        /// <param name="entity">The entity to add.</param>
         public void AddEntity(Entity entity) => _entities.Add(entity);
 
         /// <summary>
-        /// Renders all entities with Sprite and Transform components.
+        /// Adds a logic or render system to the scene.
         /// </summary>
-        public void Render(SpriteRenderer renderer, Camera2D camera)
+        public void AddSystem(object system)
         {
-            foreach (var entity in _entities)
+            if (system is ISystem s)
+                _systems.Add(s);
+            if (system is IRenderSystem rs)
+                _renderSystems.Add(rs);
+        }
+
+        /// <summary>
+        /// Updates all registered systems in the scene.
+        /// </summary>
+        /// <param name="deltaTime">Elapsed time in seconds since last update.</param>
+        public void Update(float deltaTime)
+        {
+            foreach (var system in _systems)
             {
-                if (entity.Sprite is null) continue;
-
-                var t = entity.Transform;
-                var s = entity.Sprite;
-
-                renderer.Draw(
-                    s.Texture,
-                    t.Position,
-                    s.Size * t.Scale,
-                    t.Rotation,
-                    s.Origin,
-                    s.Color,
-                    camera.GetMatrix()
-                );
+                system.Update(deltaTime, this);
             }
         }
         
         /// <summary>
-        /// Returns all entities in the scene.
+        /// Renders all render systems.
+        /// </summary>
+        public void Render()
+        {
+            foreach (var system in _renderSystems)
+            {
+                system.Render(this);
+            }
+        }
+
+        /// <summary>
+        /// Gets all entities currently in the scene.
         /// </summary>
         public IEnumerable<Entity> GetAllEntities() => _entities;
+
+        /// <summary>
+        /// Queries all entities containing specific component types.
+        /// </summary>
+        public IEnumerable<Entity> Query<T1, T2>() where T1 : class where T2 : class
+        {
+            foreach (var entity in _entities)
+            {
+                if (entity.TryGet(out T1 _) && entity.TryGet(out T2 _))
+                    yield return entity;
+            }
+        }
     }
 }

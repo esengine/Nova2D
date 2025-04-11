@@ -20,7 +20,7 @@ namespace Nova2D.Demo
 
         private static Scene? _scene;
         private static Entity? _rotatingEntity;
-        
+
         static void Main()
         {
             var options = WindowOptions.Default;
@@ -53,31 +53,37 @@ namespace Nova2D.Demo
             _camera = new Camera2D(_window.Size.X, _window.Size.Y);
             _scene = new Scene();
 
-            _rotatingEntity = new Entity
+            // Register rendering system
+            _scene.AddSystem(new SpriteRenderSystem(_renderer, _camera));
+
+            // Create entity
+            _rotatingEntity = new Entity();
+            _rotatingEntity.Add(new TransformComponent { Position = new Vector2(400, 300) });
+            _rotatingEntity.Add(new SpriteComponent(_texture)
             {
-                Sprite = new SpriteComponent(_texture!)
-                {
-                    Size = new Vector2(128, 128),
-                    Color = Vector4.One
-                }
-            };
-            _rotatingEntity.Transform.Position = new Vector2(400, 300);
+                Size = new Vector2(128, 128),
+                Color = Vector4.One
+            });
 
             _scene.AddEntity(_rotatingEntity);
         }
-        
+
         private static void OnUpdate(double delta)
         {
-            if (_rotatingEntity != null)
-                _rotatingEntity.Transform.Rotation += (float)delta;
+            if (_rotatingEntity?.Get<TransformComponent>() is { } transform)
+            {
+                transform.Rotation += (float)delta;
+            }
+
+            _scene?.Update((float)delta);
         }
 
         private static void OnRender(double delta)
         {
             _gl.ClearColor(0.1f, 0.1f, 0.1f, 1f);
             _gl.Clear(ClearBufferMask.ColorBufferBit);
-
-            _scene?.Render(_renderer!, _camera!);
+            
+            _scene?.Render();
         }
 
         private static void OnClose()

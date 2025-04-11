@@ -6,13 +6,17 @@ namespace Nova2D.Engine.Graphics
 {
     /// <summary>
     /// Renders 2D textured quads using a simple shader and MVP transform.
+    /// Supports color tinting, rotation, and origin offset.
     /// </summary>
-    public unsafe class SpriteRenderer
+    public unsafe class SpriteRenderer : IDisposable
     {
         private readonly GL _gl;
         private readonly Shader _shader;
         private readonly uint _vao;
         private readonly uint _vbo;
+        
+        private readonly int _mvpLocation;
+        private readonly int _colorLocation;
 
         public SpriteRenderer(GL gl, Shader shader)
         {
@@ -50,38 +54,45 @@ namespace Nova2D.Engine.Graphics
 
             _gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
             _gl.BindVertexArray(0);
+            
+            _mvpLocation = _gl.GetUniformLocation(_shader.Handle, "uMVP");
+            _colorLocation = _gl.GetUniformLocation(_shader.Handle, "uColor");
         }
 
         /// <summary>
         /// Renders a single textured quad at a given position and size.
         /// </summary>
-        public void Draw(
+        public void DrawSprite(
             Texture texture,
             Vector2 position,
             Vector2 size,
-            float rotation,
-            Vector2 origin,
-            Vector4 color,
-            Matrix4x4 cameraMatrix)
+            float rotation = 0f,
+            Vector2? origin = null,
+            Vector4? color = null,
+            Matrix4x4? cameraMatrix = null)
         {
+            if (texture == null)
+                throw new ArgumentNullException(nameof(texture));
+            
+            Vector2 actualOrigin = origin ?? Vector2.Zero;
+            Vector4 actualColor = color ?? Vector4.One;
+            Matrix4x4 camMatrix = cameraMatrix ?? Matrix4x4.Identity;
+            
             _shader.Use();
 
-            // Transform
             var model =
-                Matrix4x4.CreateTranslation(-origin.X, -origin.Y, 0f) *
+                Matrix4x4.CreateTranslation(-actualOrigin.X, -actualOrigin.Y, 0f) *
                 Matrix4x4.CreateScale(size.X, size.Y, 1f) *
                 Matrix4x4.CreateRotationZ(rotation) *
                 Matrix4x4.CreateTranslation(position.X, position.Y, 0f);
 
-            var mvp = model * cameraMatrix;
+            var mvp = model * camMatrix;
             
-            int mvpLoc = _gl.GetUniformLocation(_shader.Handle, "uMVP");
             float* m = (float*)Unsafe.AsPointer(ref mvp);
-            _gl.UniformMatrix4(mvpLoc, 1, false, m);
+            _gl.UniformMatrix4(_mvpLocation, 1, false, m);
 
-            int colorLoc = _gl.GetUniformLocation(_shader.Handle, "uColor");
-            _gl.Uniform4(colorLoc, color.X, color.Y, color.Z, color.W);
-            
+            _gl.Uniform4(_colorLocation, actualColor.X, actualColor.Y, actualColor.Z, actualColor.W);
+
             texture.Bind();
             _gl.BindVertexArray(_vao);
             _gl.DrawArrays(PrimitiveType.Triangles, 0, 6);
