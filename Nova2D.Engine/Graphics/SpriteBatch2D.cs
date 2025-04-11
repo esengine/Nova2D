@@ -27,6 +27,8 @@ namespace Nova2D.Engine.Graphics
 
         private Matrix4x4 _mvp;
         private readonly int _uMvpLocation;
+        
+        public static int TotalDrawCallsThisFrame { get; set; } = 0;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct Vertex
@@ -101,12 +103,12 @@ namespace Nova2D.Engine.Graphics
         }
 
         /// <summary>
-        /// Submits a sprite to the batch.
+        /// Queues a sprite to be rendered in this batch.
         /// </summary>
         public void Draw(Texture texture, Vector2 position, Vector2 size, Vector4 color, Vector2 origin = default, float rotation = 0f)
         {
             if (_spriteCount >= MaxSprites)
-                Flush(texture); // auto-flush if full
+                Flush(texture); // auto flush if batch is full
 
             int baseIndex = _spriteCount * 4;
 
@@ -117,19 +119,19 @@ namespace Nova2D.Engine.Graphics
                 Matrix4x4.CreateRotationZ(rotation) *
                 Matrix4x4.CreateTranslation(position.X, position.Y, 0);
 
-            // Define quad (0,0) to (1,1)
+            // Quad corners
             Vector2[] quadPos = {
-                Vector2.Zero,
-                new Vector2(1, 0),
-                new Vector2(1, 1),
-                new Vector2(0, 1)
+                new(0, 0),
+                new(1, 0),
+                new(1, 1),
+                new(0, 1)
             };
 
             Vector2[] quadUV = {
-                new Vector2(0, 0),
-                new Vector2(1, 0),
-                new Vector2(1, 1),
-                new Vector2(0, 1)
+                new(0, 0),
+                new(1, 0),
+                new(1, 1),
+                new(0, 1)
             };
 
             for (int i = 0; i < 4; i++)
@@ -145,6 +147,51 @@ namespace Nova2D.Engine.Graphics
 
             _spriteCount++;
         }
+        
+        public void Draw(Texture texture, Vector2 position, Vector2 size, Rectangle source, Vector4 color, Vector2 origin = default, float rotation = 0f)
+        {
+            if (_spriteCount >= MaxSprites)
+                Flush(texture);
+
+            int baseIndex = _spriteCount * VerticesPerSprite;
+
+            Matrix4x4 model =
+                Matrix4x4.CreateTranslation(-origin.X, -origin.Y, 0f) *
+                Matrix4x4.CreateScale(size.X, size.Y, 1f) *
+                Matrix4x4.CreateRotationZ(rotation) *
+                Matrix4x4.CreateTranslation(position.X, position.Y, 0f);
+
+            Vector2[] quadPos = {
+                new(0, 0),
+                new(1, 0),
+                new(1, 1),
+                new(0, 1)
+            };
+
+            float texWidth = texture.Width;
+            float texHeight = texture.Height;
+
+            Vector2[] quadUV = {
+                new(source.X / texWidth, source.Y / texHeight),
+                new((source.X + source.Width) / texWidth, source.Y / texHeight),
+                new((source.X + source.Width) / texWidth, (source.Y + source.Height) / texHeight),
+                new(source.X / texWidth, (source.Y + source.Height) / texHeight),
+            };
+
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 world = Vector3.Transform(new Vector3(quadPos[i], 0f), model);
+                _vertices[baseIndex + i] = new Vertex
+                {
+                    Position = new Vector2(world.X, world.Y),
+                    TexCoord = quadUV[i],
+                    Color = color
+                };
+            }
+
+            _spriteCount++;
+        }
+
 
         /// <summary>
         /// Ends the batch and submits all data to GPU.
@@ -153,6 +200,7 @@ namespace Nova2D.Engine.Graphics
         {
             if (_spriteCount == 0) return;
             Flush(texture);
+            TotalDrawCallsThisFrame++;
         }
 
         private void Flush(Texture texture)

@@ -17,12 +17,20 @@ namespace Nova2D.Demo
         private static Texture? _texture;
         private static SpriteRenderer? _renderer;
         private static Camera2D? _camera;
+        
+        private static BitmapFont? _bitmapFont;
+        private static BitmapFontRenderer? _fontRenderer;
 
         private static Shader? _batchShader;
         private static SpriteBatch2D? _spriteBatch;
 
         private static Scene? _scene;
         private static Entity? _rotatingEntity;
+        
+        private static int _frameCounter;
+        private static float _timeAccumulator;
+        private static float _fps;
+
 
         static void Main()
         {
@@ -57,6 +65,11 @@ namespace Nova2D.Demo
             // SpriteBatch2D
             _batchShader = new Shader(_gl, "Shaders/spritebatch.vert", "Shaders/spritebatch.frag");
             _spriteBatch = new SpriteBatch2D(_gl, _batchShader);
+            
+            // Load font
+            var fontTexture = new Texture(_gl, Path.Combine("Assets", "Fonts", "font_0.png"));
+            _bitmapFont = new BitmapFont(fontTexture, Path.Combine("Assets", "Fonts", "font.fnt"));
+            _fontRenderer = new BitmapFontRenderer(_bitmapFont);
 
             _camera = new Camera2D(_window.Size.X, _window.Size.Y);
             _scene = new Scene();
@@ -86,6 +99,16 @@ namespace Nova2D.Demo
             }
 
             _scene?.Update((float)delta);
+            
+            _timeAccumulator += (float)delta;
+            _frameCounter++;
+
+            if (_timeAccumulator >= 1.0f)
+            {
+                _fps = _frameCounter / _timeAccumulator;
+                _frameCounter = 0;
+                _timeAccumulator = 0;
+            }
         }
 
         private static void OnRender(double delta)
@@ -93,7 +116,22 @@ namespace Nova2D.Demo
             _gl.ClearColor(0.1f, 0.1f, 0.1f, 1f);
             _gl.Clear(ClearBufferMask.ColorBufferBit);
 
+            SpriteBatch2D.TotalDrawCallsThisFrame = 0;
+            
             _scene?.Render();
+            
+            if (_spriteBatch != null && _fontRenderer != null)
+            {
+                _spriteBatch.Begin(_camera!.GetMatrix());
+                
+                _fontRenderer.DrawText(_spriteBatch, "Hello Nova2D!", new Vector2(20, 20), Vector4.One);
+                
+                string drawCallText = $"Draw Calls: {SpriteBatch2D.TotalDrawCallsThisFrame}";
+                _fontRenderer.DrawText(_spriteBatch, drawCallText, new Vector2(20, 50), Vector4.One);
+                _fontRenderer.DrawText(_spriteBatch, $"FPS: {_fps:F0}", new Vector2(20, 80), Vector4.One);
+                
+                _spriteBatch.End(_bitmapFont!.Texture);
+            }
         }
 
         private static void OnClose()
