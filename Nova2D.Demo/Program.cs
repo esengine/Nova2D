@@ -63,7 +63,8 @@ namespace Nova2D.Demo
 
             // Register rendering system
             // _scene.AddSystem(new SpriteRenderSystem(_renderer, _camera));
-            _scene.AddSystem(new SpriteBatchRenderSystem(_spriteBatch, _camera));
+            // _scene.AddSystem(new SpriteBatchRenderSystem(_spriteBatch, _camera));
+            _scene.AddSystem(new SmartSpriteBatchRenderSystem(_spriteBatch, _camera));
 
             // Create entity
             _rotatingEntity = new Entity();
