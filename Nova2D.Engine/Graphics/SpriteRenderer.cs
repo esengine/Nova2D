@@ -55,18 +55,19 @@ namespace Nova2D.Engine.Graphics
         /// <summary>
         /// Renders a single textured quad at a given position and size.
         /// </summary>
-        public void Draw(Texture texture, Vector2 position, Vector2 size)
+        public void Draw(Texture texture, Vector2 position, Vector2 size, Matrix4x4 cameraMatrix)
         {
             _shader.Use();
 
             Matrix4x4 model =
                 Matrix4x4.CreateScale(size.X, size.Y, 1f) *
                 Matrix4x4.CreateTranslation(position.X, position.Y, 0f);
+            
+            Matrix4x4 mvp = model * cameraMatrix;
 
             int modelLoc = _gl.GetUniformLocation(_shader.Handle, "uModel");
-
-            float* modelPtr = (float*)Unsafe.AsPointer(ref model);
-            _gl.UniformMatrix4(modelLoc, 1, transpose: false, modelPtr);
+            float* m = (float*)Unsafe.AsPointer(ref mvp);
+            _gl.UniformMatrix4(modelLoc, 1, false, m);
 
             texture.Bind();
             _gl.BindVertexArray(_vao);

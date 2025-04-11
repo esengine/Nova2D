@@ -29,7 +29,7 @@ namespace Nova2D.Engine.Graphics
                 throw new FileNotFoundException($"Texture file not found: {path}");
 
             // Flip image vertically to match OpenGL's bottom-left origin
-            StbImage.stbi_set_flip_vertically_on_load(1);
+            // StbImage.stbi_set_flip_vertically_on_load(1);
             
             using var stream = File.OpenRead(path);
             var image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);

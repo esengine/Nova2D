@@ -15,6 +15,7 @@ namespace Nova2D.Demo
         
         private static SpriteRenderer? _renderer;
         private static Shader? _shader;
+        private static Camera2D? _camera;
 
         static void Main()
         {
@@ -26,6 +27,11 @@ namespace Nova2D.Demo
             _window.Load += OnLoad;
             _window.Render += OnRender;
             _window.Closing += OnClose;
+            _window.FramebufferResize += size =>
+            {
+                _gl.Viewport(0, 0, (uint)size.X, (uint)size.Y);
+                _camera?.Resize(size.X, size.Y);
+            };
 
             _window.Run();
         }
@@ -42,14 +48,15 @@ namespace Nova2D.Demo
             _shader = new Shader(_gl, vertPath, fragPath);
 
             _renderer = new SpriteRenderer(_gl, _shader);
+            _camera = new Camera2D(_window.Size.X, _window.Size.Y);
         }
 
         private static void OnRender(double delta)
         {
             _gl.ClearColor(0.1f, 0.1f, 0.1f, 1f);
             _gl.Clear(ClearBufferMask.ColorBufferBit);
-
-            _renderer?.Draw(_texture!, new Vector2(0f, 0f), new Vector2(0.5f, 0.5f));
+            
+            _renderer?.Draw(_texture!, new Vector2(100f, 100f), new Vector2(256f, 256f), _camera!.GetMatrix());
         }
 
         private static void OnClose()
