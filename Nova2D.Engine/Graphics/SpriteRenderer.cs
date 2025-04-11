@@ -17,6 +17,10 @@ namespace Nova2D.Engine.Graphics
         
         private readonly int _mvpLocation;
         private readonly int _colorLocation;
+        private readonly int _flipXLocation;
+        private readonly int _flipYLocation;
+        private readonly int _grayscaleLocation;
+        private readonly int _discardTransparentLocation;
 
         public SpriteRenderer(GL gl, Shader shader)
         {
@@ -57,6 +61,10 @@ namespace Nova2D.Engine.Graphics
             
             _mvpLocation = _gl.GetUniformLocation(_shader.Handle, "uMVP");
             _colorLocation = _gl.GetUniformLocation(_shader.Handle, "uColor");
+            _flipXLocation = _gl.GetUniformLocation(_shader.Handle, "uFlipX");
+            _flipYLocation = _gl.GetUniformLocation(_shader.Handle, "uFlipY");
+            _grayscaleLocation = _gl.GetUniformLocation(_shader.Handle, "uGrayscale");
+            _discardTransparentLocation = _gl.GetUniformLocation(_shader.Handle, "uDiscardTransparent");
         }
 
         /// <summary>
@@ -69,7 +77,11 @@ namespace Nova2D.Engine.Graphics
             float rotation = 0f,
             Vector2? origin = null,
             Vector4? color = null,
-            Matrix4x4? cameraMatrix = null)
+            Matrix4x4? cameraMatrix = null,
+            bool flipX = false,
+            bool flipY = false,
+            bool grayscale = false,
+            bool discardTransparent = false)
         {
             if (texture == null)
                 throw new ArgumentNullException(nameof(texture));
@@ -90,9 +102,13 @@ namespace Nova2D.Engine.Graphics
             
             float* m = (float*)Unsafe.AsPointer(ref mvp);
             _gl.UniformMatrix4(_mvpLocation, 1, false, m);
-
             _gl.Uniform4(_colorLocation, actualColor.X, actualColor.Y, actualColor.Z, actualColor.W);
 
+            _gl.Uniform1(_flipXLocation, flipX ? 1 : 0);
+            _gl.Uniform1(_flipYLocation, flipY ? 1 : 0);
+            _gl.Uniform1(_grayscaleLocation, grayscale ? 1 : 0);
+            _gl.Uniform1(_discardTransparentLocation, discardTransparent ? 1 : 0);
+            
             texture.Bind();
             _gl.BindVertexArray(_vao);
             _gl.DrawArrays(PrimitiveType.Triangles, 0, 6);

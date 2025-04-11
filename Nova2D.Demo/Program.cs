@@ -18,6 +18,9 @@ namespace Nova2D.Demo
         private static SpriteRenderer? _renderer;
         private static Camera2D? _camera;
 
+        private static Shader? _batchShader;
+        private static SpriteBatch2D? _spriteBatch;
+
         private static Scene? _scene;
         private static Entity? _rotatingEntity;
 
@@ -47,14 +50,20 @@ namespace Nova2D.Demo
             _gl = GL.GetApi(_window);
 
             _texture = new Texture(_gl, Path.Combine("Assets", "Textures", "test.png"));
+            // SpriteRenderer (still usable if needed)
             _shader = new Shader(_gl, "Shaders/sprite.vert", "Shaders/sprite.frag");
-
             _renderer = new SpriteRenderer(_gl, _shader);
+
+            // SpriteBatch2D
+            _batchShader = new Shader(_gl, "Shaders/spritebatch.vert", "Shaders/spritebatch.frag");
+            _spriteBatch = new SpriteBatch2D(_gl, _batchShader);
+
             _camera = new Camera2D(_window.Size.X, _window.Size.Y);
             _scene = new Scene();
 
             // Register rendering system
-            _scene.AddSystem(new SpriteRenderSystem(_renderer, _camera));
+            // _scene.AddSystem(new SpriteRenderSystem(_renderer, _camera));
+            _scene.AddSystem(new SpriteBatchRenderSystem(_spriteBatch, _camera));
 
             // Create entity
             _rotatingEntity = new Entity();
@@ -82,7 +91,7 @@ namespace Nova2D.Demo
         {
             _gl.ClearColor(0.1f, 0.1f, 0.1f, 1f);
             _gl.Clear(ClearBufferMask.ColorBufferBit);
-            
+
             _scene?.Render();
         }
 
@@ -90,6 +99,8 @@ namespace Nova2D.Demo
         {
             _texture?.Dispose();
             _shader?.Dispose();
+            _batchShader?.Dispose();
+            _spriteBatch?.Dispose();
         }
     }
 }
