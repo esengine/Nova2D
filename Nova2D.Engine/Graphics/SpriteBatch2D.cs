@@ -2,6 +2,7 @@ using Silk.NET.OpenGL;
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Nova2D.Engine.Core;
 
 namespace Nova2D.Engine.Graphics
 {
@@ -21,15 +22,28 @@ namespace Nova2D.Engine.Graphics
         private readonly uint _ebo;
 
         private readonly Vertex[] _vertices;
-        private int _spriteCount = 0;
-
         private readonly uint[] _indices;
-
-        private Matrix4x4 _mvp;
-        private readonly int _uMvpLocation;
         
+        private int _spriteCount = 0;
+        private Texture? _currentTexture;
+        private Matrix4x4 _mvp;
+        
+        private bool _hasBegun = false;
+        
+        private readonly int _uMvpLocation;
+        /// <summary>
+        /// Total number of draw calls issued this frame.
+        /// </summary>
         public static int TotalDrawCallsThisFrame { get; set; } = 0;
+        
+        private static readonly Vector2[] _unitQuad = new Vector2[]
+        {
+            new(0, 0), new(1, 0), new(1, 1), new(0, 1)
+        };
 
+        /// <summary>
+        /// Defines the layout of a vertex used in the batch (position, texture coordinate, color).
+        /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         private struct Vertex
         {
@@ -37,7 +51,6 @@ namespace Nova2D.Engine.Graphics
             public Vector2 TexCoord;
             public Vector4 Color;
         }
-
 
         public SpriteBatch2D(GL gl, Shader shader)
         {
@@ -62,27 +75,27 @@ namespace Nova2D.Engine.Graphics
                 _gl.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)(_indices.Length * sizeof(uint)), i, BufferUsageARB.StaticDraw);
 
             int stride = sizeof(Vertex);
-            _gl.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, (uint)stride, (void*)0);
+            _gl.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, (uint)stride, (void*)Marshal.OffsetOf<Vertex>("Position"));
             _gl.EnableVertexAttribArray(0);
 
-            _gl.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, (uint)stride, (void*)(sizeof(float) * 2));
+            _gl.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, (uint)stride, (void*)Marshal.OffsetOf<Vertex>("TexCoord"));
             _gl.EnableVertexAttribArray(1);
 
-            _gl.VertexAttribPointer(2, 4, VertexAttribPointerType.Float, false, (uint)stride, (void*)(sizeof(float) * 4));
+            _gl.VertexAttribPointer(2, 4, VertexAttribPointerType.Float, false, (uint)stride, (void*)Marshal.OffsetOf<Vertex>("Color"));
             _gl.EnableVertexAttribArray(2);
 
-            _gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
             _gl.BindVertexArray(0);
+            _gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
 
-            _uMvpLocation = _gl.GetUniformLocation(_shader.Handle, "uMVP");
+            _uMvpLocation = _gl.GetUniformLocation(shader.Handle, "uMVP");
         }
 
         private void GenerateIndices()
         {
             for (int i = 0; i < MaxSprites; i++)
             {
-                int offset = i * 4;
-                int index = i * 6;
+                int offset = i * VerticesPerSprite;
+                int index = i * IndicesPerSprite;
 
                 _indices[index + 0] = (uint)(offset + 0);
                 _indices[index + 1] = (uint)(offset + 1);
@@ -94,53 +107,65 @@ namespace Nova2D.Engine.Graphics
         }
 
         /// <summary>
+        /// Begins a new batch using an orthographic projection based on the current window size.
+        /// Use this for rendering UI elements.
+        /// </summary>
+        public void Begin()
+        {
+            var projection = Matrix4x4.CreateOrthographicOffCenter(
+                0f, NovaContext.WindowSize.X,
+                NovaContext.WindowSize.Y, 0f,
+                -1f, 1f
+            );
+            Begin(projection);
+        }
+        
+        /// <summary>
         /// Begins a new batch with a given MVP matrix (usually ViewProjection).
         /// </summary>
         public void Begin(Matrix4x4 mvp)
         {
+            if (_hasBegun)
+                throw new InvalidOperationException("SpriteBatch already begun!");
+
             _spriteCount = 0;
+            _currentTexture = null;
             _mvp = mvp;
+            _hasBegun = true;
         }
 
         /// <summary>
-        /// Queues a sprite to be rendered in this batch.
+        /// Ends the batch and flushes all pending draw calls.
+        /// </summary>
+        public void End()
+        {
+            if (!_hasBegun)
+                throw new InvalidOperationException("Begin must be called before End");
+
+            Flush();
+            _hasBegun = false;
+        }
+        
+        /// <summary>
+        /// Draws a textured sprite quad with optional transform, color and origin.
         /// </summary>
         public void Draw(Texture texture, Vector2 position, Vector2 size, Vector4 color, Vector2 origin = default, float rotation = 0f)
         {
-            if (_spriteCount >= MaxSprites)
-                Flush(texture); // auto flush if batch is full
+            if (!_hasBegun)
+                throw new InvalidOperationException("Call Begin() before Draw()");
 
-            int baseIndex = _spriteCount * 4;
-
-            // Compute model transform
-            var model =
-                Matrix4x4.CreateTranslation(-origin.X, -origin.Y, 0) *
-                Matrix4x4.CreateScale(size.X, size.Y, 1) *
-                Matrix4x4.CreateRotationZ(rotation) *
-                Matrix4x4.CreateTranslation(position.X, position.Y, 0);
-
-            // Quad corners
-            Vector2[] quadPos = {
-                new(0, 0),
-                new(1, 0),
-                new(1, 1),
-                new(0, 1)
-            };
-
-            Vector2[] quadUV = {
-                new(0, 0),
-                new(1, 0),
-                new(1, 1),
-                new(0, 1)
-            };
+            EnsureTexture(texture);
+            
+            var model = GetModelMatrix(position, size, origin, rotation);
+            int baseIndex = _spriteCount * VerticesPerSprite;
 
             for (int i = 0; i < 4; i++)
             {
-                Vector3 world = Vector3.Transform(new Vector3(quadPos[i], 0), model);
+                Vector3 world = Vector3.Transform(new Vector3(_unitQuad[i], 0f), model);
                 _vertices[baseIndex + i] = new Vertex
                 {
                     Position = new Vector2(world.X, world.Y),
-                    TexCoord = quadUV[i],
+                    TexCoord = _unitQuad[i],
                     Color = color
                 };
             }
@@ -148,11 +173,13 @@ namespace Nova2D.Engine.Graphics
             _spriteCount++;
         }
         
+        /// <summary>
+        /// Draws a sprite using a source rectangle from a texture atlas.
+        /// </summary>
         public void Draw(Texture texture, Vector2 position, Vector2 size, Rectangle source, Vector4 color, Vector2 origin = default, float rotation = 0f)
         {
-            if (_spriteCount >= MaxSprites)
-                Flush(texture);
-
+            EnsureTexture(texture);
+            
             int baseIndex = _spriteCount * VerticesPerSprite;
 
             Matrix4x4 model =
@@ -161,52 +188,62 @@ namespace Nova2D.Engine.Graphics
                 Matrix4x4.CreateRotationZ(rotation) *
                 Matrix4x4.CreateTranslation(position.X, position.Y, 0f);
 
-            Vector2[] quadPos = {
-                new(0, 0),
-                new(1, 0),
-                new(1, 1),
-                new(0, 1)
-            };
+            float texW = texture.Width;
+            float texH = texture.Height;
 
-            float texWidth = texture.Width;
-            float texHeight = texture.Height;
+            Vector2 uv0 = new(source.X / texW, source.Y / texH);
+            Vector2 uv1 = new((source.X + source.Width) / texW, source.Y / texH);
+            Vector2 uv2 = new((source.X + source.Width) / texW, (source.Y + source.Height) / texH);
+            Vector2 uv3 = new(source.X / texW, (source.Y + source.Height) / texH);
 
-            Vector2[] quadUV = {
-                new(source.X / texWidth, source.Y / texHeight),
-                new((source.X + source.Width) / texWidth, source.Y / texHeight),
-                new((source.X + source.Width) / texWidth, (source.Y + source.Height) / texHeight),
-                new(source.X / texWidth, (source.Y + source.Height) / texHeight),
-            };
-
+            Vector2[] uvs = { uv0, uv1, uv2, uv3 };
+            
             for (int i = 0; i < 4; i++)
             {
-                Vector3 world = Vector3.Transform(new Vector3(quadPos[i], 0f), model);
+                Vector3 world = Vector3.Transform(new Vector3(_unitQuad[i], 0f), model);
                 _vertices[baseIndex + i] = new Vertex
                 {
                     Position = new Vector2(world.X, world.Y),
-                    TexCoord = quadUV[i],
+                    TexCoord = uvs[i],
                     Color = color
                 };
             }
 
             _spriteCount++;
         }
-
-
-        /// <summary>
-        /// Ends the batch and submits all data to GPU.
-        /// </summary>
-        public void End(Texture texture)
+        
+        private static Matrix4x4 GetModelMatrix(Vector2 position, Vector2 size, Vector2 origin, float rotation)
         {
-            if (_spriteCount == 0) return;
-            Flush(texture);
-            TotalDrawCallsThisFrame++;
+            return
+                Matrix4x4.CreateTranslation(-origin.X, -origin.Y, 0f) *
+                Matrix4x4.CreateScale(size.X, size.Y, 1f) *
+                Matrix4x4.CreateRotationZ(rotation) *
+                Matrix4x4.CreateTranslation(position.X, position.Y, 0f);
         }
 
-        private void Flush(Texture texture)
+        private void EnsureTexture(Texture texture)
         {
-            texture.Bind();
+            if (_spriteCount >= MaxSprites)
+            {
+                Flush();
+                _currentTexture = texture;
+            }
+
+            if (_currentTexture != null && _currentTexture != texture)
+            {
+                Flush();
+                _currentTexture = texture;
+            }
+
+            _currentTexture ??= texture;
+        }
+        
+        private void Flush()
+        {
+            if (_spriteCount == 0 || _currentTexture == null) return;
+            
             _shader.Use();
+            _currentTexture.Bind();
 
             fixed (Vertex* v = _vertices)
             {
@@ -222,10 +259,13 @@ namespace Nova2D.Engine.Graphics
             _gl.BindVertexArray(_vao);
             _gl.DrawElements(
                 (GLEnum)PrimitiveType.Triangles,
-                (uint)(_spriteCount * 6),
+                (uint)(_spriteCount * IndicesPerSprite),
                 (GLEnum)DrawElementsType.UnsignedInt,
                 null
             );
+            
+            TotalDrawCallsThisFrame++;
+            _spriteCount = 0;
         }
 
         public void Dispose()

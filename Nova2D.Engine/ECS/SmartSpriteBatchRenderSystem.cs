@@ -31,20 +31,20 @@ namespace Nova2D.Engine.ECS
 
             foreach (var group in grouped)
             {
-                var texture = group.Key;
                 _spriteBatch.Begin(viewMatrix);
 
                 foreach (var entity in group)
                 {
                     var transform = entity.Get<TransformComponent>()!;
                     var sprite = entity.Get<SpriteComponent>()!;
+                    var size = sprite.Size * transform.Scale;
 
                     if (sprite.SourceRect.HasValue)
                     {
                         _spriteBatch.Draw(
                             sprite.Texture,
                             transform.Position,
-                            sprite.Size * transform.Scale,
+                            size,
                             sprite.SourceRect.Value,
                             sprite.Color,
                             sprite.Origin,
@@ -56,7 +56,7 @@ namespace Nova2D.Engine.ECS
                         _spriteBatch.Draw(
                             sprite.Texture,
                             transform.Position,
-                            sprite.Size * transform.Scale,
+                            size,
                             sprite.Color,
                             sprite.Origin,
                             transform.Rotation
@@ -64,7 +64,7 @@ namespace Nova2D.Engine.ECS
                     }
                 }
 
-                _spriteBatch.End(texture);
+                _spriteBatch.End();
             }
         }
     }

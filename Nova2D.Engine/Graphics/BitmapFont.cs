@@ -4,20 +4,32 @@ using System.Numerics;
 
 namespace Nova2D.Engine.Graphics
 {
+    /// <summary>
+    /// Represents a bitmap font loaded from a .fnt file and corresponding texture.
+    /// Supports character lookup and string measurement.
+    /// </summary>
     public class BitmapFont
     {
+        /// <summary>
+        /// The texture atlas containing the glyphs.
+        /// </summary>
         public Texture Texture { get; }
+        
+        /// <summary>
+        /// Dictionary mapping characters to glyph information.
+        /// </summary>
         public Dictionary<char, Glyph> Glyphs { get; } = new();
-
-        public struct Glyph
-        {
-            public Rectangle Source;
-            public Vector2 Offset;
-            public float XAdvance;
-        }
-
+        
+        /// <summary>
+        /// The height of a single line of text.
+        /// </summary>
         public float LineHeight { get; private set; }
 
+        /// <summary>
+        /// Constructs a new bitmap font from a font texture and .fnt metadata file.
+        /// </summary>
+        /// <param name="texture">The texture containing the font glyphs.</param>
+        /// <param name="fntPath">Path to the .fnt file exported by BMFont or similar tool.</param>
         public BitmapFont(Texture texture, string fntPath)
         {
             Texture = texture;
@@ -57,8 +69,45 @@ namespace Nova2D.Engine.Graphics
                 return "0";
             }
         }
+        
+        /// <summary>
+        /// Measures the total width and height of a string rendered with this font.
+        /// </summary>
+        /// <param name="text">The string to measure.</param>
+        /// <returns>The size of the string in pixels.</returns>
+        public Vector2 MeasureString(string text)
+        {
+            float width = 0f;
+            float maxHeight = LineHeight;
+
+            foreach (char c in text)
+            {
+                if (Glyphs.TryGetValue(c, out var glyph))
+                {
+                    width += glyph.XAdvance;
+                    float glyphHeight = glyph.Source.Height + glyph.Offset.Y;
+                    if (glyphHeight > maxHeight)
+                        maxHeight = glyphHeight;
+                }
+            }
+
+            return new Vector2(width, maxHeight);
+        }
+        
+        /// <summary>
+        /// Represents a single glyph/character inside the font.
+        /// </summary>
+        public struct Glyph
+        {
+            public Rectangle Source; // Texture rectangle
+            public Vector2 Offset;   // Position offset when rendering
+            public float XAdvance;   // Distance to advance to next glyph
+        }
     }
 
+    /// <summary>
+    /// A rectangle in 2D space, typically used for texture regions.
+    /// </summary>
     public struct Rectangle
     {
         public float X, Y, Width, Height;

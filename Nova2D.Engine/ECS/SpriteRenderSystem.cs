@@ -4,7 +4,8 @@ using Nova2D.Engine.Graphics;
 namespace Nova2D.Engine.ECS
 {
     /// <summary>
-    /// A system that renders all entities with both Transform and Sprite components.
+    /// A basic sprite render system that renders each sprite immediately using SpriteRenderer.
+    /// Not batched – suitable for debug tools, gizmos, and editor visuals.
     /// </summary>
     public class SpriteRenderSystem : IRenderSystem
     {

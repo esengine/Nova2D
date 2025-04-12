@@ -19,6 +19,8 @@ namespace Nova2D.Engine.Graphics
 
         public int Width { get; }
         public int Height { get; }
+        
+        public static Texture? WhiteTexture { get; private set; }
 
         /// <summary>
         /// Loads a texture from disk and uploads it to the GPU.
@@ -51,15 +53,47 @@ namespace Nova2D.Engine.Graphics
                     dataPtr);
             }
 
-            // Set default filtering and wrapping
+            SetDefaultParameters();
+        }
+        
+        private void SetDefaultParameters()
+        {
             _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.Repeat);
             _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.Repeat);
             _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
             _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-
             _gl.BindTexture(TextureTarget.Texture2D, 0);
         }
+        
+        /// <summary>
+        /// Creates a 1x1 white texture. Useful for solid color UI backgrounds.
+        /// </summary>
+        public static void CreateWhiteTexture(GL gl)
+        {
+            WhiteTexture = new Texture(gl, new byte[] { 255, 255, 255, 255 });
+        }
 
+        /// <summary>
+        /// Creates a texture from a raw RGBA byte array.
+        /// </summary>
+        private Texture(GL gl, byte[] rgba)
+        {
+            _gl = gl;
+            Width = 1;
+            Height = 1;
+
+            Handle = _gl.GenTexture();
+            _gl.BindTexture(TextureTarget.Texture2D, Handle);
+
+            fixed (byte* ptr = rgba)
+            {
+                _gl.TexImage2D(TextureTarget.Texture2D, 0, (int)InternalFormat.Rgba, 1, 1, 0,
+                    PixelFormat.Rgba, PixelType.UnsignedByte, ptr);
+            }
+
+            SetDefaultParameters();
+        }
+        
         /// <summary>
         /// Binds this texture to the specified texture unit.
         /// </summary>

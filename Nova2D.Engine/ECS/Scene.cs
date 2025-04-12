@@ -12,6 +12,11 @@ namespace Nova2D.Engine.ECS
         private readonly List<Entity> _entities = new();
         private readonly List<ISystem> _systems = new();
         private readonly List<IRenderSystem> _renderSystems = new();
+        
+        /// <summary>
+        /// Gets the number of active entities in the scene.
+        /// </summary>
+        public int EntityCount => _entities.Count;
 
         /// <summary>
         /// Adds an entity to the scene.
