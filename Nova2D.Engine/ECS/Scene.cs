@@ -74,5 +74,13 @@ namespace Nova2D.Engine.ECS
                     yield return entity;
             }
         }
+        
+        /// <summary>
+        /// Removes all entities from the scene.
+        /// </summary>
+        public void Clear()
+        {
+            _entities.Clear();
+        }
     }
 }

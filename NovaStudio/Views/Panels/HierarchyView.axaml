@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="clr-namespace:NovaStudio.Models"
+             xmlns:viewModels="clr-namespace:NovaStudio.ViewModels"
+             xmlns:panels="clr-namespace:NovaStudio.ViewModels.Panels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="panels:HierarchyViewModel"
+             x:Class="NovaStudio.Views.Panels.HierarchyView">
+    
+    <Border BorderThickness="1"
+            BorderBrush="{DynamicResource BorderColor}"
+            Background="{DynamicResource PanelColor}">
+
+        <DockPanel>
+
+            <Border DockPanel.Dock="Top"
+                    Background="{DynamicResource PanelColor}"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="0 0 0 1"
+                    Padding="8,4">
+                <TextBlock Text="Hierarchy"
+                           FontSize="14"
+                           FontWeight="Bold" />
+            </Border>
+
+            <ListBox
+                ItemsSource="{Binding Entities}"
+                SelectedItem="{Binding Selected, Mode=TwoWay}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="models:EditableEntity">
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+        </DockPanel>
+    </Border>
+</UserControl>

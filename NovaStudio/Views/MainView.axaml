@@ -1,0 +1,31 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:NovaStudio.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:NovaStudio.Views"
+        xmlns:panels="clr-namespace:NovaStudio.Views.Panels"
+        mc:Ignorable="d"
+        Width="1280" Height="720"
+        x:Class="NovaStudio.Views.MainView"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="NovaStudio">
+
+    <Design.DataContext>
+        <vm:MainViewModel/>
+    </Design.DataContext>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="300" />
+        </Grid.ColumnDefinitions>
+
+        <panels:HierarchyView DataContext="{Binding Hierarchy}" Grid.Column="0" />
+        <panels:SceneView DataContext="{Binding Scene}" Grid.Column="1" />
+        <panels:InspectorView DataContext="{Binding Inspector}" Grid.Column="2" />
+    </Grid>
+
+</Window>

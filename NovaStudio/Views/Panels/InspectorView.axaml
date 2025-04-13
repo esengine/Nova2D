@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:panels="clr-namespace:NovaStudio.ViewModels.Panels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="panels:InspectorViewModel"
+             x:Class="NovaStudio.Views.Panels.InspectorView">
+    <Border BorderThickness="1"
+            BorderBrush="{DynamicResource BorderColor}"
+            Background="{DynamicResource PanelColor}">
+        
+        <DockPanel>
+
+            <Border DockPanel.Dock="Top"
+                    Background="{DynamicResource PanelColor}"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="0 0 0 1"
+                    Padding="8,4">
+                <TextBlock Text="Inspector"
+                           FontSize="14"
+                           FontWeight="Bold" />
+            </Border>
+
+            <ScrollViewer Margin="8">
+                <ItemsControl ItemsSource="{Binding Components}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0 4 0 4" Padding="4" Background="#222">
+                                <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+        </DockPanel>
+    </Border>
+</UserControl>
