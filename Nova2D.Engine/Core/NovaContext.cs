@@ -6,7 +6,7 @@ using Nova2D.Engine.UI;
 using Nova2D.Engine.ECS;
 using System.Collections.Generic;
 using System.Numerics;
-using Nova2D.Engine.Debug;
+using Nova2D.Engine.NovaDebug;
 using Shader = Nova2D.Engine.Graphics.Shader;
 using Texture = Nova2D.Engine.Graphics.Texture;
 

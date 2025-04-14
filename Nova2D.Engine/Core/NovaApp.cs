@@ -5,7 +5,6 @@ using Nova2D.Engine.Graphics;
 using Nova2D.Engine.ECS;
 using Nova2D.Engine.UI;
 using System.Numerics;
-using Nova2D.Engine.Debug;
 using Texture = Nova2D.Engine.Graphics.Texture;
 
 namespace Nova2D.Engine.Core
